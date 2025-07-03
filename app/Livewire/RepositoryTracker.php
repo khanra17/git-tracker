@@ -117,6 +117,35 @@ class RepositoryTracker extends Component
     }
 
     /**
+     * Moves the review to the previous commit in the history.
+     */
+    public function stepBackward(): void
+    {
+        if (!$this->canStepBackward) {
+            return;
+        }
+
+        $allShas = $this->git->getCommitSHAs($this->repository->default_branch);
+        $previousCommitSha = $allShas[$this->currentCommitIndex - 1] ?? null;
+
+        if (!$previousCommitSha) {
+            return;
+        }
+
+        // Persist the new progress in the database within a transaction
+        DB::transaction(function () use ($previousCommitSha) {
+            $this->repository->last_reviewed_commit_sha = $previousCommitSha;
+            $this->repository->save();
+
+            // Delete the last review log to correct the pace calculation
+            $this->repository->reviewLogs()->latest('created_at')->first()?->delete();
+        });
+
+        // Refresh the component's state from the newly saved data
+        $this->syncStateFromRepository();
+    }
+
+    /**
      * Fetches the latest changes from the remote Git repository and re-syncs the state.
      */
     public function refreshRepository(): void
@@ -196,6 +225,12 @@ class RepositoryTracker extends Component
     public function canStepForward(): bool
     {
         return $this->currentCommitIndex < ($this->totalCommits - 1);
+    }
+
+    #[Computed]
+    public function canStepBackward(): bool
+    {
+        return $this->currentCommitIndex > 0;
     }
 
     #[Computed]
@@ -314,8 +349,8 @@ class RepositoryTracker extends Component
             $datasets[] = [
                 'label' => 'Ideal Pace',
                 'data' => $generateSeries($netIdealPace, $initialCommits, Carbon::now()),
-                'borderColor' => 'rgb(56, 248, 189)', 'backgroundColor' => 'rgba(56, 248, 189, 0.1)',
-                'tension' => 0.1, 'pointRadius' => 0, 'borderWidth' => 2, 'fill' => true,
+                'borderColor' => 'rgb(56, 248, 189)',
+                'tension' => 0.1, 'borderWidth' => 2, 'fill' => true,
             ];
         }
 
@@ -326,8 +361,8 @@ class RepositoryTracker extends Component
             $datasets[] = [
                 'label' => 'Actual Pace',
                 'data' => $generateSeries($netActualPace, $initialCommits, Carbon::now()),
-                'borderColor' => 'rgb(14, 165, 233)', 'backgroundColor' => 'rgba(14, 165, 233, 0.2)',
-                'tension' => 0.1, 'pointRadius' => 0, 'borderWidth' => 2, 'fill' => false, 'borderDash' => [5, 5],
+                'borderColor' => 'rgb(14, 165, 233)',
+                'tension' => 0.1, 'borderWidth' => 3, 'fill' => false, 'borderDash' => [5, 5],
             ];
         }
 

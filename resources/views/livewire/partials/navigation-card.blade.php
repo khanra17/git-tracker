@@ -18,6 +18,12 @@
             @endif
         </div>
         <div class="flex gap-4">
+            <button wire:click="stepBackward" @if(!$this->canStepBackward) disabled @endif
+                    class="flex-1 px-6 py-3 bg-zinc-900/50 border border-amber-400/20 text-amber-100 rounded-lg hover:bg-zinc-900/70 hover:border-amber-400/30 transition-all duration-200 flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                <span wire:loading.remove wire:target="stepBackward">Previous Commit</span>
+                <span wire:loading wire:target="stepBackward">Stepping...</span>
+            </button>
             <button wire:click="stepForward" @if(!$this->canStepForward) disabled @endif
             class="flex-1 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl border-0 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:scale-100">
                 <span wire:loading.remove wire:target="stepForward">Next Commit</span>
